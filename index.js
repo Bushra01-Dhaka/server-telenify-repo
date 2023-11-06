@@ -31,7 +31,12 @@ async function run() {
 
      const jobCollection = client.db('jobHunt').collection('jobs');
 
-     
+     //create api to inserting data into jobCollection jobs
+     app.post('/jobs', async(req, res) => {
+        const job = req.body;
+        const result = await jobCollection.insertOne(job);
+        res.send(result);
+     })
 
 
 
