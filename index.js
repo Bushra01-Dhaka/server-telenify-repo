@@ -52,6 +52,31 @@ async function run() {
         
      })
 
+     //all jobs according to the category
+    //  app.get('/jobs', async(req, res) => {
+    //     console.log("category", req.query.category);
+
+    //     let query = {};
+    //     if(req.query?.category)
+    //     {
+    //       query = {category: req.query.category}
+    //     }
+    //     const result = await jobCollection.find(query).toArray();
+    //     res.send(result);
+    //  })
+
+
+    app.get('/jobs/:category', async(req, res) => {
+      const category = req.params.category;
+      const query = {category: (category)};
+      const result = await jobCollection.find(query).toArray();
+      res.send(result);
+    })
+
+
+
+
+
      app.get('/jobs/:id', async(req, res) => {
        const id = req.params.id;
        const query = {_id: new ObjectId(id)};
