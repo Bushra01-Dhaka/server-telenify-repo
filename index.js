@@ -30,6 +30,7 @@ async function run() {
     await client.connect();
 
      const jobCollection = client.db('jobHunt').collection('jobs');
+     const bidCollection = client.db('jobHunt').collection('bids');
 
      //create api to inserting data into jobCollection jobs
      app.post('/jobs', async(req, res) => {
@@ -37,6 +38,16 @@ async function run() {
         const result = await jobCollection.insertOne(job);
         res.send(result);
      })
+
+      //create api to inserting data into bidCollection
+     
+      app.post('/bids', async(req, res) => {
+         const bid = req.body;
+         const result = await bidCollection.insertOne(bid);
+         res.send(result);
+       });
+
+     
 
      //all jobs data 
      app.get('/jobs', async(req, res) => {
@@ -52,18 +63,20 @@ async function run() {
         
      })
 
-     //all jobs according to the category
-    //  app.get('/jobs', async(req, res) => {
-    //     console.log("category", req.query.category);
+     //bid all data according to email query
+     app.get('/bids', async(req, res) => {
+       console.log("email", req.query.email);
 
-    //     let query = {};
-    //     if(req.query?.category)
-    //     {
-    //       query = {category: req.query.category}
-    //     }
-    //     const result = await jobCollection.find(query).toArray();
-    //     res.send(result);
-    //  })
+       let query = {};
+       if(req.query?.email)
+       {
+        query = {bidEmail: req.query.email}
+       }
+       const result = await bidCollection.find(query).toArray();
+       res.send(result)
+     })
+
+  
 
 
     app.get('/jobs/:category', async(req, res) => {
@@ -74,10 +87,8 @@ async function run() {
     })
 
 
-
-
-
-     app.get('/jobs/:id', async(req, res) => {
+    
+     app.get('/jobs/single/:id', async(req, res) => {
        const id = req.params.id;
        const query = {_id: new ObjectId(id)};
        const result = await jobCollection.findOne(query);
@@ -112,6 +123,9 @@ async function run() {
       const result = await jobCollection.updateOne(filter,job,options);
       res.send(result);
      })
+
+
+    
 
 
 
