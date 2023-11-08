@@ -63,7 +63,7 @@ async function run() {
         
      })
 
-     //bid all data according to email query
+     //bid all data according to bider email query
      app.get('/bids', async(req, res) => {
        console.log("email", req.query.email);
 
@@ -75,6 +75,39 @@ async function run() {
        const result = await bidCollection.find(query).toArray();
        res.send(result)
      })
+
+      //bid all data according to JOB POSTER email query
+     app.get('/bids', async(req, res) => {
+       console.log("email", req.query.email);
+
+       let query = {};
+       if(req.query?.email)
+       {
+        query = {jobPosterEmail: req.query.email}
+       }
+       const result = await bidCollection.find(query).toArray();
+       res.send(result)
+     })
+
+
+     //for updating bids
+     app.patch('/bids/single/:id', async(req, res) => {
+      const id = req.params.id;
+      const filter = {jobPost_Id: (id)}
+      const updatedStatus = req.body;
+      console.log(updatedStatus);
+
+      const updatedDoc = {
+            $set: {
+              status: updatedStatus.status
+            }
+      }
+      const result = await bidCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+     })
+
+
+    
 
   
 
@@ -104,7 +137,7 @@ async function run() {
      })
 
      //to update
-     app.put('/jobs/:id', async(req, res) => {
+     app.put('/jobs/single/:id', async(req, res) => {
       const id = req.params.id;
       const filter = {_id: new ObjectId(id)}
       const options = {upsert: true}
