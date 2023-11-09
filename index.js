@@ -1,13 +1,23 @@
 const express = require("express");
 const cors = require("cors");
-require('dotenv').config()
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
+require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
 
 //middle wire
-app.use(cors());
+app.use(cors({
+  origin: [
+    // 'http://localhost:5173'
+    'https://talenify.web.app',
+    'https://talenify.firebaseapp.com'
+  ],
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
 
 
 
@@ -24,13 +34,69 @@ const client = new MongoClient(uri, {
   },
 });
 
+//middleware
+const logger = (req, res, next) => {
+  console.log('log: info', req.method, req.url);
+  next();
+}
+
+const verifyToken  = (req, res, next) => {
+  const token = req.cookies?.token;
+  console.log('token in the middleware', token);
+  if(!token)
+  {
+    return res.status(401).send({message: 'unauthorized access'})
+  }
+  jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
+    if(err)
+    {
+      return res.status(401).send({message: 'unauthorized access'})
+    }
+    req.user = decoded;
+    next();
+  })
+  
+}
+
+
+
+
+
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
      const jobCollection = client.db('jobHunt').collection('jobs');
      const bidCollection = client.db('jobHunt').collection('bids');
+
+
+     //jwt related api 
+     app.post('/jwt', async(req, res) => {
+      const user = req.body;
+      console.log('user for token', user);
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN , {expiresIn: '1h'});
+      res.cookie('token',token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none'
+      })
+      .send({success: true});
+     })
+
+
+     //jwt logout related
+     app.post('/logout', async(req, res) => {
+      const user = req.body;
+      console.log('logging out', user);
+      res.clearCookie('token', {maxAge: 0}).send({success: true})
+     })
+
+
+
+
+
 
      //create api to inserting data into jobCollection jobs
      app.post('/jobs', async(req, res) => {
@@ -52,7 +118,7 @@ async function run() {
      //all jobs data 
      app.get('/jobs', async(req, res) => {
         console.log("email",req.query.email);
-
+     
         let query = {};
         if(req.query?.email)
         {
@@ -66,6 +132,15 @@ async function run() {
      //bid all data according to bider email query
      app.get('/bids', async(req, res) => {
        console.log("email", req.query.email);
+      //  console.log('token owner info', req.user);
+      //  if(req.user.email !== req.query.email)
+      //  {
+      //   return res.status(403).send({message: 'forbidden access'})
+      //  }
+
+
+      //  console.log('cook cookies', req.cookies)
+
 
        let query = {};
        if(req.query?.email)
@@ -79,6 +154,8 @@ async function run() {
       //bid all data according to JOB POSTER email query
      app.get('/bids', async(req, res) => {
        console.log("email", req.query.email);
+
+      //  console.log('cook cookies', req.cookies);
 
        let query = {};
        if(req.query?.email)
@@ -94,6 +171,7 @@ async function run() {
      app.patch('/bids/single/:id', async(req, res) => {
       const id = req.params.id;
       const filter = {jobPost_Id: (id)}
+      console.log(filter)
       const updatedStatus = req.body;
       console.log(updatedStatus);
 
@@ -105,11 +183,6 @@ async function run() {
       const result = await bidCollection.updateOne(filter, updatedDoc);
       res.send(result);
      })
-
-
-    
-
-  
 
 
     app.get('/jobs/:category', async(req, res) => {
@@ -169,7 +242,7 @@ async function run() {
 
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
